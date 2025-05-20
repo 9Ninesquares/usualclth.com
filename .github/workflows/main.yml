@@ -7,15 +7,55 @@ on:
       - US-*                  # всі гілки, що починаються з "US-" (наприклад, US-123)
 
 jobs:
-  deploy:                     # Назва job'а (довільна, але логічна)
-    runs-on: ubuntu-latest    # GitHub створить віртуальну машину з Ubuntu для виконання кроків
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract Jira issue key from branch name
+        id: extract
+        run: |
+          echo "Branch name: ${{ github.head_ref }}"
+          ISSUE_KEY=$(echo "${{ github.head_ref }}" | grep -oE '[A-Z]+-[0-9]+')
+          echo "Extracted issue key: $ISSUE_KEY"
+          echo "issue_key=$ISSUE_KEY" >> $GITHUB_OUTPUT
 
-    steps:                    # Послідовні дії, які виконує job
-      - name: Notify Jira of deployment   # 2️⃣ Надіслати інформацію про розгортання в Jira
-        uses: atlassian/gajira-deployments@v1
-        with:
-          site: ${{ secrets.JIRA_SITE }}             # Jira сайт (наприклад, yourteam.atlassian.net)
-          email: ${{ secrets.JIRA_EMAIL }}           # Email Atlassian-акаунта
-          api-token: ${{ secrets.JIRA_API_TOKEN }}   # Jira API токен
-          environment: production                       # Назва середовища (можеш змінити на "production")
-          environment-type: production                   # Тип середовища: development / staging / production
+      - name: Send deployment info to Jira
+        if: steps.extract.outputs.issue_key != ''
+        env:
+          JIRA_SITE: ${{ secrets.JIRA_SITE }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ steps.extract.outputs.issue_key }}
+        run: |
+          curl --request POST "https://${JIRA_SITE}/rest/deployments/0.1/bulk" \
+          --user "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+          --header "Content-Type: application/json" \
+          --data '{
+            "deployments": [
+              {
+                "deploymentSequenceNumber": '"$(date +%s)"',
+                "updateSequenceNumber": '"$(date +%s)"',
+                "displayName": "GitHub PR Deployment",
+                "url": "https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}",
+                "description": "Deployment for PR #${{ github.event.pull_request.number }}",
+                "lastUpdated": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'",
+                "state": "successful",
+                "pipeline": {
+                  "id": "build-${{ github.run_id }}",
+                  "displayName": "GitHub Actions CI",
+                  "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                },
+                "environment": {
+                  "id": "staging",
+                  "displayName": "Staging",
+                  "type": "staging"
+                },
+                "associations": [
+                  {
+                    "associationType": "issueIdOrKeys",
+                    "values": ["'"$ISSUE_KEY"'"]
+                  }
+                ]
+              }
+            ],
+            "properties": {}
+          }'
