@@ -45,9 +45,9 @@ jobs:
                   "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                 },
                 "environment": {
-                  "id": "staging",
-                  "displayName": "Staging",
-                  "type": "staging"
+                  "id": "production",
+                  "displayName": "Production",
+                  "type": "production"
                 },
                 "associations": [
                   {
