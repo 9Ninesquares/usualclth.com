@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Текстова сторінка!
+ * Template Name: Текстова сторінка!!!
  */
 
 get_header();
