@@ -11,17 +11,11 @@ jobs:
     runs-on: ubuntu-latest    # GitHub створить віртуальну машину з Ubuntu для виконання кроків
 
     steps:                    # Послідовні дії, які виконує job
-      - name: Checkout code   # 1️⃣ Назва першого кроку — "Отримати код з репозиторію"
-        uses: actions/checkout@v3
-        # Використовує офіційний GitHub Action для завантаження (checkout) коду з репозиторію
-        # Це обов’язково, якщо ти хочеш працювати з файлами проекту, але у цьому випадку — не обов’язково.
-        # Можеш цей крок видалити, якщо не виконуєш тести чи збірку.
-
       - name: Notify Jira of deployment   # 2️⃣ Надіслати інформацію про розгортання в Jira
         uses: atlassian/gajira-deployments@v1
         with:
-          site: ${{ secrets.JIRA_SITE }}             # Jira сайт (наприклад, yourteam.atlassian.net)
-          email: ${{ secrets.JIRA_EMAIL }}           # Email Atlassian-акаунта
-          api-token: ${{ secrets.JIRA_API_TOKEN }}   # Jira API токен
-          environment: staging                        # Назва середовища (можеш змінити на "production")
-          environment-type: staging                   # Тип середовища: development / staging / production
+          site: ${{ secrets.ninesquares.atlassian.net }}             # Jira сайт (наприклад, yourteam.atlassian.net)
+          email: ${{ secrets.pm@ninesquares.studio }}           # Email Atlassian-акаунта
+          api-token: ${{ secrets.ATATT3xFfGF0XEDy8pPctaJ30NjaGXSeIXILXvFOsEeKfvFfoyHXSOTUymFC8kRrmz989U-9Mn3LuyCiPgf3BGw1Z2B1uyNwbzLZdNFJuyrSSXT5BFxwNflHLv5vNJjEIhPSqNI6SX6UjbRACmkCRaPboWaDKigt_hFrsdaZwT4asf8ELLJ4kR0=C36E12E6 }}   # Jira API токен
+          environment: production                       # Назва середовища (можеш змінити на "production")
+          environment-type: production                   # Тип середовища: development / staging / production
