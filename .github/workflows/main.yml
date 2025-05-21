@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - US-*
+      - US1-*
 
 jobs:
   deploy:
