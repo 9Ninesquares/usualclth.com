@@ -19,7 +19,7 @@ jobs:
         id: extract
         run: |
           echo "Branch name: ${{ github.ref }}"
-          ISSUE_KEY=$(echo "${{ github.ref }}" | grep -oE '[A-Z]+-[0-9]+')
+          ISSUE_KEY=$(echo "${{ github.ref }}" | grep -oE '[A-Z]+-[0-9]+' || true)
           echo "Extracted Jira issue key: $ISSUE_KEY"
           echo "jira_key=$ISSUE_KEY" >> $GITHUB_OUTPUT
 
