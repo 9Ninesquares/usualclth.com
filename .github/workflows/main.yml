@@ -8,6 +8,6 @@ on:
 
 jobs:
   deploy:
-    uses: 9Ninesquares/workflow-templates/.github/workflows/deploy.yml@main
+    uses: yourcompany/workflow-templates/.github/workflows/deploy.yml@main
     with:
       environment: production
