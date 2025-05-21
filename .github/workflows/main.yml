@@ -1,61 +1,39 @@
-name: Deployment Notification  # Назва workflow, яка відображатиметься у вкладці "Actions" в GitHub
+name: Deploy to Production
 
 on:
-  pull_request:               # Коли запускати workflow:
-    branches:                 # ... при створенні або оновленні pull request у такі гілки:
-      - master                # головна гілка
-      - US-*                  # всі гілки, що починаються з "US-" (наприклад, US-123)
+  push:
+    branches:
+      - 'US-*'
+      - master
 
 jobs:
-  notify:
+  deploy:
+    name: Deploy to Jira
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Extract Jira issue key from branch name
         id: extract
         run: |
-          echo "Branch name: ${{ github.head_ref }}"
-          ISSUE_KEY=$(echo "${{ github.head_ref }}" | grep -oE '[A-Z]+-[0-9]+')
-          echo "Extracted issue key: $ISSUE_KEY"
-          echo "issue_key=$ISSUE_KEY" >> $GITHUB_OUTPUT
+          echo "Branch name: ${{ github.ref }}"
+          ISSUE_KEY=$(echo "${{ github.ref }}" | grep -oE '[A-Z]+-[0-9]+')
+          echo "Extracted Jira issue key: $ISSUE_KEY"
+          echo "jira_key=$ISSUE_KEY" >> $GITHUB_OUTPUT
 
-      - name: Send deployment info to Jira
-        if: steps.extract.outputs.issue_key != ''
-        env:
-          JIRA_SITE: ${{ secrets.JIRA_SITE }}
-          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-          ISSUE_KEY: ${{ steps.extract.outputs.issue_key }}
-        run: |
-          curl --request POST "https://${JIRA_SITE}/rest/deployments/0.1/bulk" \
-          --user "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-          --header "Content-Type: application/json" \
-          --data '{
-            "deployments": [
-              {
-                "deploymentSequenceNumber": '"$(date +%s)"',
-                "updateSequenceNumber": '"$(date +%s)"',
-                "displayName": "GitHub PR Deployment",
-                "url": "https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}",
-                "description": "Deployment for PR #${{ github.event.pull_request.number }}",
-                "lastUpdated": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'",
-                "state": "successful",
-                "pipeline": {
-                  "id": "build-${{ github.run_id }}",
-                  "displayName": "GitHub Actions CI",
-                  "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                },
-                "environment": {
-                  "id": "production",
-                  "displayName": "Production",
-                  "type": "production"
-                },
-                "associations": [
-                  {
-                    "associationType": "issueIdOrKeys",
-                    "values": ["'"$ISSUE_KEY"'"]
-                  }
-                ]
-              }
-            ],
-            "properties": {}
-          }'
+      - name: Create GitHub Deployment
+        id: create_deployment
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: production
+          ref: ${{ github.ref }}
+
+      - name: Update Deployment Status to Success
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment_id: ${{ steps.create_deployment.outputs.deployment_id }}
+          state: success
